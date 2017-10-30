@@ -3,13 +3,16 @@ import os
 import requests
 import json
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 
 
 APP_NAME = 'series_meta'
 
 BASE_URL = 'https://api.themoviedb.org/3'
 API_KEY = '9a2a9c19247fe23f3aaea69b743fb0a6'
+
+VIDEO_FORMATS = ['mp4', 'mkv', 'avi']
+SUBTITLE_FORMATS = ['srt']
 
 
 def create_args_dictionary(args):
@@ -39,7 +42,7 @@ def create_file_path(root_dir, file_name):
 	return root_dir + file_name
 
 
-def rename_tv_episode_name(file_path, current_file_name, expected_file_name):
+def rename_file_name(file_path, current_file_name, expected_file_name):
 	file_name_extension = os.path.splitext(current_file_name)[1]
 	expected_file_name += file_name_extension
 	current_file_path = create_file_path(file_path, current_file_name)
@@ -47,11 +50,37 @@ def rename_tv_episode_name(file_path, current_file_name, expected_file_name):
 	os.rename(current_file_path, expected_file_path)
 	print 'Renamed ' + current_file_name + ' to ' + expected_file_name
 
+def get_file_extension(file):
+	file_extension = os.path.splitext(file)[1]
+	return file_extension[1:]
+
+def is_video_file(file):
+	file_extension = get_file_extension(file)
+	return file_extension in VIDEO_FORMATS
+
+def is_subtitle_file(file):
+	file_extension = get_file_extension(file)
+	return file_extension in SUBTITLE_FORMATS
+
+def group_files(list):
+	list_videos = []
+	list_subtitles = []
+	list_trash = []
+	for file in list:
+		if is_video_file(file):
+			list_videos.append(file)
+		elif is_subtitle_file(file):
+			list_subtitles.append(file)
+		else:
+			list_trash.append(file)
+	return list_videos, list_subtitles, list_trash
+
 
 def main():
 	args = sys.argv
 	args_dictionary = create_args_dictionary(args)
 	file_directory = os.getcwd()
+	# file_directory should always end with a /
 
 	try: 
 		tv_series_name = args_dictionary['-s']
@@ -63,7 +92,12 @@ def main():
 			print ('{app_name}: error: You must provide a series number.').format(app_name = APP_NAME)
 		sys.exit()
 
+	list_videos = []
+	list_subtitles = []
+	list_trash = []
+
 	list = os.listdir(file_directory)
+	list_videos, list_subtitles, list_trash = group_files(list)
 
 	response = requests.get(create_search_url(tv_series_name))
 	response_json = response.json()
@@ -79,14 +113,21 @@ def main():
 	season_number = response_json['season_number']
 	tv_episodes_array = response_json['episodes']
 
-	if (len(list) == len(tv_episodes_array)):
+	if len(list_videos) == len(tv_episodes_array):
 		for index in range(len(tv_episodes_array)):
 			tv_episode_name = tv_episodes_array[index]['name']
 			expected_file_name = create_tv_episode_name(tv_series_name, season_number, index + 1, tv_episode_name)
-			rename_tv_episode_name(file_directory, list[index], expected_file_name)
+			rename_file_name(file_directory, list_videos[index], expected_file_name)
 	else:
 		print 'Episode count differs, can\'t continue with renaming'
 
+	if len(list_subtitles) == len(tv_episodes_array):
+		for index in range(len(tv_episodes_array)):
+			tv_episode_name = tv_episodes_array[index]['name']
+			expected_file_name = create_tv_episode_name(tv_series_name, season_number, index + 1, tv_episode_name)
+			rename_file_name(file_directory, list_subtitles[index], expected_file_name)
+	else:
+		print 'Subtitle count differs, can\'t continue with renaming'
 
 if __name__ == '__main__':
 	main()
