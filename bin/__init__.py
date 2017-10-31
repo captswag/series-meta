@@ -3,6 +3,7 @@ import os
 import requests
 import json
 
+
 __version__ = '0.0.2'
 
 
@@ -50,17 +51,21 @@ def rename_file_name(file_path, current_file_name, expected_file_name):
 	os.rename(current_file_path, expected_file_path)
 	print 'Renamed ' + current_file_name + ' to ' + expected_file_name
 
+
 def get_file_extension(file):
 	file_extension = os.path.splitext(file)[1]
 	return file_extension[1:]
+
 
 def is_video_file(file):
 	file_extension = get_file_extension(file)
 	return file_extension in VIDEO_FORMATS
 
+
 def is_subtitle_file(file):
 	file_extension = get_file_extension(file)
 	return file_extension in SUBTITLE_FORMATS
+
 
 def group_files(list):
 	list_videos = []
@@ -91,10 +96,6 @@ def main():
 		elif e.message == '-n':
 			print ('{app_name}: error: You must provide a series number.').format(app_name = APP_NAME)
 		sys.exit()
-
-	list_videos = []
-	list_subtitles = []
-	list_trash = []
 
 	list = os.listdir(file_directory)
 	list_videos, list_subtitles, list_trash = group_files(list)
@@ -128,6 +129,7 @@ def main():
 			rename_file_name(file_directory, list_subtitles[index], expected_file_name)
 	else:
 		print 'Subtitle count differs, can\'t continue with renaming'
+
 
 if __name__ == '__main__':
 	main()
